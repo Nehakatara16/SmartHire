@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Candidate Skills | SmartHire</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+            font-family: Arial;
+        }
+
+        .container {
+            margin-top: 60px;
+        }
+
+        .glass {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+        }
+
+        .skill-badge {
+            margin: 5px;
+            padding: 10px 15px;
+            font-size: 14px;
+            border-radius: 20px;
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="glass">
+
+        <h2 class="title"> Extracted Skills</h2>
+
+        <!-- SKILLS DISPLAY -->
+        <div class="text-center">
+            {% if skills %}
+                {% for s in skills %}
+                    <span class="badge bg-info skill-badge">{{ s }}</span>
+                {% endfor %}
+            {% else %}
+                <p>No skills found</p>
+            {% endif %}
+        </div>
+
+        <!-- BACK BUTTON -->
+        <div class="text-center mt-4">
+            <a href="/dashboard" class="btn btn-warning">⬅ Back to Dashboard</a>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

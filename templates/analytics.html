@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Analytics</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+        }
+
+        .card-box {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin: 15px;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1 class="text-center">📊 Score Analytics</h1>
+
+    <div class="row">
+
+        <div class="col-md-4">
+            <div class="card-box">
+                <h3>Average Score</h3>
+                <h2>{{ avg_score }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card-box">
+                <h3>Selected</h3>
+                <h2>{{ selected }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card-box">
+                <h3>Rejected</h3>
+                <h2>{{ rejected }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card-box">
+                <h3>Highest Score</h3>
+                <h2>{{ highest }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card-box">
+                <h3>Lowest Score</h3>
+                <h2>{{ lowest }}</h2>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="/admin" class="btn btn-info">⬅ Back to Admin</a>
+    </div>
+
+</div>
+
+</body>
+</html>
