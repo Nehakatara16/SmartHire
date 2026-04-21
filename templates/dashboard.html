@@ -110,12 +110,12 @@
                     <th>Rank</th>
                     <th>User</th>
                     <th>Resume</th>
-                    <th>Score</th>
+                    <th>Match Score</th>
+                    <th>AI Score</th>
                     <th>Skills</th>
                     <th>Uploaded</th>
                     <th>Status</th>
                     <th>Action</th>
-                    <th>AI Score</th>
                 </tr>
             </thead>
 
@@ -126,6 +126,7 @@
                     <td>{{ r.username }}</td>
                     <td>{{ r.name }}</td>
                     <td>{{ "%.2f"|format(r.score or 0) }}%</td>
+                    <td>{{ "%.2f"|format(r.ai_score or 0) }}%</td>
 
                     <td>
                         {% for s in r.skills %}
@@ -142,16 +143,19 @@
                     </td>
 
                     <td>
-                        <a href="/preview/{{ r.name }}" class="btn btn-secondary btn-sm">👁</a>
-
-                        {% if session['role'] == 'admin' %}
-                        <a href="/update_status/{{ r.id }}/Shortlisted" class="btn btn-warning btn-sm">S</a>
-                        <a href="/update_status/{{ r.id }}/Selected" class="btn btn-success btn-sm">✔</a>
-                        <a href="/update_status/{{ r.id }}/Rejected" class="btn btn-danger btn-sm">✖</a>
-                        {% endif %}
+                        <div class="d-flex justify-content-center gap-1 flex-wrap">
+                    
+                            <a href="{{ url_for('preview', filename=r.name) }}" 
+                               class="btn btn-secondary btn-sm" target="_blank">👁</a>
+                    
+                            {% if session['role'] == 'admin' %}
+                            <a href="/update_status/{{ r.id }}/Shortlisted" class="btn btn-warning btn-sm">S</a>
+                            <a href="/update_status/{{ r.id }}/Selected" class="btn btn-success btn-sm">✔</a>
+                            <a href="/update_status/{{ r.id }}/Rejected" class="btn btn-danger btn-sm">✖</a>
+                            {% endif %}
+                    
+                        </div>
                     </td>
-
-                    <td>{{ "%.2f"|format(r.ai_score or 0) }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>

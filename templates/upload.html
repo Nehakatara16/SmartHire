@@ -29,43 +29,46 @@
 
         <h3 class="mb-4">📤 Upload Resume</h3>
 
-        <!-- ✅ SINGLE FORM -->
-        <form action="{{ url_for('upload_page') }}" method="POST">
+        <form action="{{ url_for('handle_upload') }}" method="POST" ></form>
 
             {% if role == 'admin' %}
-            <textarea name="job_description" class="form-control mb-3" 
-placeholder="Paste Job Description here..." required></textarea>
-            <!-- ADMIN -->
+
+            <!-- ADMIN: JOB DESCRIPTION -->
+            <div class="mb-3">
+                <label>Job Description</label>
+                <textarea name="job_role" class="form-control"
+                          placeholder="Paste Job Description here..." required></textarea>
+            </div>
+
+            <!-- ADMIN: MULTIPLE FILE UPLOAD -->
             <div class="mb-3">
                 <label>Select Resume Files</label>
                 <input type="file" name="resumes" multiple class="form-control" required>
             </div>
-        
-            <div class="mb-3">
-                <label>Job Description</label>
-                <textarea name="job_desc" class="form-control"></textarea>
-            </div>
-        
-            <div class="mb-3">
-                <label>Job Role</label>
-                <input type="text" name="job_role" class="form-control">
-            </div>
-        
+
             <button class="btn btn-success w-100">Upload & Analyze</button>
-        
+
             {% else %}
-        
-            <!-- USER -->
+
+            <!-- USER: SINGLE UPLOAD -->
             <div class="mb-3">
                 <label>Upload Resume</label>
                 <input type="file" name="resume" class="form-control" required>
             </div>
-        
+
+            <!-- USER: OPTIONAL JOB DESCRIPTION -->
+            <div class="mb-3">
+                <label>Job Description (Optional)</label>
+                <textarea name="job_role" class="form-control"
+                          placeholder="Paste Job Description for AI scoring (optional)"></textarea>
+            </div>
+
             <button class="btn btn-primary w-100">Upload Resume</button>
-        
+
             {% endif %}
-        
+
         </form>
+
     </div>
 
 </div>

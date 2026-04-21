@@ -1,9 +1,23 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_mysqldb import MySQL
+from flask import send_file
 import os
 import re
 from datetime import datetime
+from PyPDF2 import PdfReader
+
+#========FOR READ RESUME============
+def extract_text(path):
+    text = ""
+    try:
+        reader = PdfReader(path)
+        for page in reader.pages:
+            text += page.extract_text() or ""
+    except:
+        pass
+    return text
 
 #==============AI SCORING==============
 def calculate_ai_score(resume_text, job_description):
@@ -40,6 +54,8 @@ from email.mime.multipart import MIMEMultipart
 # ===== APP INIT =====
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret")
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # ================= MYSQL CONFIG =================
 app.config['MYSQL_HOST'] = 'localhost'
@@ -62,7 +78,7 @@ def extract_skills_from_text(text):
 def calculate_score(skills):
     return min(len(skills) * 10, 100)
 
-#===================UPLOAD==================
+#===========UPLOAD=================
 @app.route('/upload_page')
 def upload():
     if 'user' not in session:
@@ -71,7 +87,7 @@ def upload():
     return render_template('upload.html', role=session.get('role')) 
 
 @app.route('/upload', methods=['POST'])
-def upload_page():
+def handle_upload():
     if 'user' not in session:
         return redirect(url_for('login')) 
 
@@ -80,38 +96,37 @@ def upload_page():
     # ===== ADMIN MULTIPLE UPLOAD =====
     if session.get('role') == 'admin':
         files = request.files.getlist('resumes')
-        job_role = request.form.get('job_role')  # used as job description
+        job_role = request.form.get("job_role", "").strip()
 
         for file in files:
             if file:
-                filename = file.filename
+                filename = secure_filename(file.filename)
                 path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(path)
 
-                # 👉 READ FILE TEXT
-                try:
-                    with open(path, "r", errors="ignore") as f:
-                        text = f.read()
-                except:
-                    text = ""
+                # READ RESUME
+                text = extract_text(path)
 
-                # EXISTING LOGIC
+                # MATCH SCORE (SKILL BASED)
                 skills = extract_skills_from_text(text)
                 score = calculate_score(skills)
 
-                # ===== NEW AI SCORE =====
-                ai_score = calculate_ai_score(text, job_role if job_role else "")
+                # AI SCORE (SAFE)
+                ai_score = calculate_ai_score(text, job_role) if job_role else 0
+
+                print("JOB ROLE:", job_role)
+                print("AI SCORE:", ai_score)
 
                 cur.execute("""
-                    INSERT INTO results(username, filename, score, status, job_role, match_score, skills, ai_score)
-                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
+                INSERT INTO results(username, filename, score, status, job_role, match_score, skills, ai_score)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
                 """, (
                     session['user'],
                     filename,
                     score,
                     "Pending",
                     job_role,
-                    ai_score,  # UPDATED (earlier was score)
+                    score,   # match_score (unchanged)
                     ",".join(skills),
                     ai_score
                 ))
@@ -119,36 +134,36 @@ def upload_page():
     # ===== USER SINGLE UPLOAD =====
     else:
         file = request.files['resume']
-        job_role = request.form.get('job_role')  # NEW
+        job_role = request.form.get("job_role", "").strip()
 
         if file:
-            filename = file.filename
+            filename = secure_filename(file.filename)
             path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(path)
 
-            try:
-                with open(path, "r", errors="ignore") as f:
-                    text = f.read()
-            except:
-                text = ""
+            # READ RESUME
+            text = extract_text(path)
 
-            # EXISTING LOGIC
+            # MATCH SCORE
             skills = extract_skills_from_text(text)
             score = calculate_score(skills)
 
-            # ===== NEW AI SCORE =====
-            ai_score = calculate_ai_score(text, job_role if job_role else "")
+            # AI SCORE
+            ai_score = calculate_ai_score(text, job_role) if job_role else 0
+
+            print("JOB ROLE:", job_role)
+            print("AI SCORE:", ai_score)
 
             cur.execute("""
-                INSERT INTO results(username, filename, score, status, job_role, match_score, skills, ai_score)
-                VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
+            INSERT INTO results(username, filename, score, status, job_role, match_score, skills, ai_score)
+            VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 session['user'],
                 filename,
                 score,
                 "Pending",
                 job_role,
-                ai_score,
+                score,   # match_score unchanged
                 ",".join(skills),
                 ai_score
             ))
@@ -303,12 +318,12 @@ def dashboard():
 
     if session.get('role') == "admin":
         cur.execute("""
-            SELECT id, username, filename, score, status, rank_no, notes, job_role, match_score, skills, upload_time
+            SELECT id, username, filename, score, status, rank_no, notes, job_role, match_score, ai_score ,skills, upload_time
             FROM results ORDER BY score DESC
         """)
     else:
         cur.execute("""
-            SELECT id, username, filename, score, status, rank_no, notes, job_role, match_score, skills, upload_time
+            SELECT id, username, filename, score, status, rank_no, notes, job_role, match_score, ai_score ,skills, upload_time
             FROM results WHERE username=%s ORDER BY score DESC
         """, (session['user'],))
 
@@ -330,19 +345,20 @@ def dashboard():
         cur.execute("UPDATE results SET rank_no=%s WHERE id=%s", (rank, row[0]))
 
         results.append({
-            "id": row[0],
-            "username": row[1],
-            "name": row[2],
-            "score": float(row[3]) if row[3] else 0,
-            "status": row[4] if row[4] else "Pending",
-            "rank": rank,
-            "notes": row[6] if row[6] else "",
-            "job_role": row[7] if row[7] else "",
-            "match": float(row[8]) if row[8] else 0,
-            "skills": row[9].split(",") if row[9] else [],
-            "time": str(row[10])
-        })
-        rank += 1
+        "id": row[0],
+        "username": row[1],
+        "name": row[2],
+        "score": float(row[3]) if row[3] else 0,
+        "status": row[4] if row[4] else "Pending",
+        "rank": rank,
+        "notes": row[6] if row[6] else "",
+        "job_role": row[7] if row[7] else "",
+        "match": float(row[8]) if row[8] else 0,
+        "ai_score": float(row[9]) if row[9] else 0,
+        "skills": row[10].split(",") if row[10] else [],
+        "time": str(row[11]) if row[11] else ""
+    })
+    rank += 1
 
     mysql.connection.commit()
 
@@ -416,10 +432,14 @@ def add_note(id):
 
 
 # ================= PREVIEW =================
-@app.route('/preview/<string:filename>')
+@app.route('/preview/<path:filename>')
 def preview(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
+    if not os.path.exists(path):
+        return "File not found", 404
+
+    return send_file(path)
 
 # ================= DELETE =================
 @app.route('/delete_result/<int:id>')
